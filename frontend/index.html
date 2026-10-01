@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RecruitIntel AI</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
+            color: #172033;
+        }
+
+        header {
+            background: #172554;
+            color: white;
+            padding: 25px 40px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 30px;
+        }
+
+        header p {
+            margin: 8px 0 0;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 15px;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            margin-top: 7px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        textarea {
+            resize: vertical;
+        }
+
+        .candidate-box {
+            border: 1px solid #e2e8f0;
+            padding: 18px;
+            margin-top: 20px;
+            border-radius: 10px;
+            background: #f8fafc;
+        }
+
+        button {
+            margin-top: 25px;
+            padding: 14px 25px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        #loading {
+            display: none;
+            color: #2563eb;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+
+        .candidate-result {
+            border-left: 6px solid #2563eb;
+            padding: 18px;
+            margin: 15px 0;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+
+        .rank {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .score {
+            font-size: 28px;
+            font-weight: bold;
+            color: #16a34a;
+            margin: 10px 0;
+        }
+
+        .skills {
+            margin-top: 10px;
+        }
+
+        .skill {
+            display: inline-block;
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 5px 9px;
+            margin: 3px;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+
+        .error {
+            color: #dc2626;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>RecruitIntel AI</h1>
+    <p>AI Recruitment Intelligence Agent</p>
+</header>
+
+<div class="container">
+
+    <div class="card">
+
+        <h2>Job Description</h2>
+
+        <label>Job Title</label>
+        <input
+            id="jobTitle"
+            value="Python Backend Developer"
+        >
+
+        <label>Job Description</label>
+        <textarea
+            id="jobDescription"
+            rows="4"
+        >Looking for a Python backend developer with FastAPI, SQL, PostgreSQL, Docker and AWS skills.</textarea>
+
+        <div class="candidate-box">
+            <h3>Candidate 1</h3>
+
+            <label>Name</label>
+            <input
+                id="name1"
+                value="Candidate A"
+            >
+
+            <label>Resume</label>
+            <textarea
+                id="resume1"
+                rows="3"
+            >Python developer with 2 years experience in FastAPI, SQL, PostgreSQL and Docker.</textarea>
+        </div>
+
+        <div class="candidate-box">
+            <h3>Candidate 2</h3>
+
+            <label>Name</label>
+            <input
+                id="name2"
+                value="Candidate B"
+            >
+
+            <label>Resume</label>
+            <textarea
+                id="resume2"
+                rows="3"
+            >Backend developer with 3 years experience in Python, FastAPI, PostgreSQL, Docker and AWS.</textarea>
+        </div>
+
+        <div class="candidate-box">
+            <h3>Candidate 3</h3>
+
+            <label>Name</label>
+            <input
+                id="name3"
+                value="Candidate C"
+            >
+
+            <label>Resume</label>
+            <textarea
+                id="resume3"
+                rows="3"
+            >Software developer with experience in Python, JavaScript and SQL.</textarea>
+        </div>
+
+        <button onclick="recruit()">
+            Analyze & Rank Candidates
+        </button>
+
+        <div id="loading">
+            Analyzing candidates...
+        </div>
+
+    </div>
+
+
+    <div class="card">
+
+        <h2>Recruitment Results</h2>
+
+        <div id="results">
+            Results will appear here.
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+async function recruit() {
+
+    const loading = document.getElementById("loading");
+    const results = document.getElementById("results");
+
+    loading.style.display = "block";
+
+    results.innerHTML = "";
+
+    const data = {
+
+        job: {
+            title: document.getElementById("jobTitle").value,
+            description: document.getElementById("jobDescription").value
+        },
+
+        candidates: [
+
+            {
+                name: document.getElementById("name1").value,
+                resume: document.getElementById("resume1").value
+            },
+
+            {
+                name: document.getElementById("name2").value,
+                resume: document.getElementById("resume2").value
+            },
+
+            {
+                name: document.getElementById("name3").value,
+                resume: document.getElementById("resume3").value
+            }
+
+        ]
+
+    };
+
+
+    try {
+
+        const response = await fetch("/recruit", {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify(data)
+
+        });
+
+
+        const result = await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                result.detail || "Recruitment request failed"
+            );
+
+        }
+
+
+        let html = `
+
+            <h3>Job: ${result.job}</h3>
+
+            <p>
+                Total Candidates:
+                <b>${result.total_candidates}</b>
+            </p>
+
+        `;
+
+
+        result.ranked_candidates.forEach((candidate, index) => {
+
+            const score =
+                candidate.match_score ??
+                candidate.score ??
+                0;
+
+
+            html += `
+
+                <div class="candidate-result">
+
+                    <div class="rank">
+                        #${index + 1}
+                        ${candidate.name}
+                    </div>
+
+                    <div class="score">
+                        ${Number(score).toFixed(2)}%
+                    </div>
+
+                    <p>
+                        ${candidate.resume || ""}
+                    </p>
+
+                </div>
+
+            `;
+
+        });
+
+
+        results.innerHTML = html;
+
+
+    } catch (error) {
+
+        results.innerHTML = `
+
+            <p class="error">
+                Error: ${error.message}
+            </p>
+
+        `;
+
+    }
+
+
+    loading.style.display = "none";
+
+}
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,21 @@
+@app.post("/recruit")
+def recruit(data: RecruitRequest):
+    # Analyze job description
+    jd_result = analyze_jd(data.job)
+
+    ranked_candidates = []
+
+    for candidate in data.candidates:
+        # Analyze candidate
+        candidate_result = analyze_candidate(candidate)
+
+        ranked_candidates.append(candidate_result)
+
+    # Rank candidates
+    ranked = rank_candidates(ranked_candidates)
+
+    return {
+        "job": data.job.title,
+        "total_candidates": len(ranked),
+        "ranked_candidates": ranked
+    }
