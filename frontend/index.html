@@ -46,14 +46,10 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.08);
         }
 
-        h2 {
-            margin-top: 0;
-        }
-
         label {
-            font-weight: bold;
             display: block;
-            margin-top: 15px;
+            font-weight: bold;
+            margin-top: 12px;
         }
 
         input,
@@ -79,8 +75,8 @@
         }
 
         button {
-            margin-top: 25px;
-            padding: 14px 25px;
+            margin-top: 20px;
+            padding: 13px 22px;
             background: #2563eb;
             color: white;
             border: none;
@@ -93,11 +89,21 @@
             background: #1d4ed8;
         }
 
+        .analyze {
+            width: 100%;
+            font-size: 18px;
+            background: #16a34a;
+        }
+
+        .analyze:hover {
+            background: #15803d;
+        }
+
         #loading {
             display: none;
+            margin-top: 15px;
             color: #2563eb;
             font-weight: bold;
-            margin-top: 15px;
         }
 
         .candidate-result {
@@ -117,11 +123,7 @@
             font-size: 28px;
             font-weight: bold;
             color: #16a34a;
-            margin: 10px 0;
-        }
-
-        .skills {
-            margin-top: 10px;
+            margin: 8px 0;
         }
 
         .skill {
@@ -132,6 +134,11 @@
             margin: 3px;
             border-radius: 5px;
             font-size: 13px;
+        }
+
+        .missing {
+            background: #fee2e2;
+            color: #991b1b;
         }
 
         .error {
@@ -150,72 +157,95 @@
 
 <div class="container">
 
+    <!-- JOB -->
     <div class="card">
 
         <h2>Job Description</h2>
 
         <label>Job Title</label>
-        <input
-            id="jobTitle"
-            value="Python Backend Developer"
-        >
+        <input id="jobTitle" value="Python Backend Developer">
 
         <label>Job Description</label>
-        <textarea
-            id="jobDescription"
-            rows="4"
-        >Looking for a Python backend developer with FastAPI, SQL, PostgreSQL, Docker and AWS skills.</textarea>
+        <textarea id="jobDescription" rows="4">Looking for a Python backend developer with FastAPI, SQL, PostgreSQL, Docker and AWS skills.</textarea>
 
-        <div class="candidate-box">
-            <h3>Candidate 1</h3>
+    </div>
 
-            <label>Name</label>
-            <input
-                id="name1"
-                value="Candidate A"
-            >
 
-            <label>Resume</label>
-            <textarea
-                id="resume1"
-                rows="3"
-            >Python developer with 2 years experience in FastAPI, SQL, PostgreSQL and Docker.</textarea>
-        </div>
+    <!-- CANDIDATE 1 -->
+    <div class="card candidate-box">
 
-        <div class="candidate-box">
-            <h3>Candidate 2</h3>
+        <h2>Candidate 1</h2>
 
-            <label>Name</label>
-            <input
-                id="name2"
-                value="Candidate B"
-            >
+        <label>Name</label>
+        <input id="name1" value="Rahul Sharma">
 
-            <label>Resume</label>
-            <textarea
-                id="resume2"
-                rows="3"
-            >Backend developer with 3 years experience in Python, FastAPI, PostgreSQL, Docker and AWS.</textarea>
-        </div>
+        <label>Resume</label>
+        <textarea id="resume1" rows="4">Python developer with 3 years of experience in Python, FastAPI, SQL, PostgreSQL, Docker and AWS. Experienced in building REST APIs and backend applications.</textarea>
 
-        <div class="candidate-box">
-            <h3>Candidate 3</h3>
+    </div>
 
-            <label>Name</label>
-            <input
-                id="name3"
-                value="Candidate C"
-            >
 
-            <label>Resume</label>
-            <textarea
-                id="resume3"
-                rows="3"
-            >Software developer with experience in Python, JavaScript and SQL.</textarea>
-        </div>
+    <!-- CANDIDATE 2 -->
+    <div class="card candidate-box">
 
-        <button onclick="recruit()">
-            Analyze & Rank Candidates
+        <h2>Candidate 2</h2>
+
+        <label>Name</label>
+        <input id="name2" value="Priya Patil">
+
+        <label>Resume</label>
+        <textarea id="resume2" rows="4">Backend developer with 2 years of experience in Python, FastAPI, SQL and PostgreSQL. Experienced in REST API development and database management.</textarea>
+
+    </div>
+
+
+    <!-- CANDIDATE 3 -->
+    <div class="card candidate-box">
+
+        <h2>Candidate 3</h2>
+
+        <label>Name</label>
+        <input id="name3" value="Amit Verma">
+
+        <label>Resume</label>
+        <textarea id="resume3" rows="4">Software developer with 1 year of experience in Python, JavaScript and SQL. Worked on web applications and basic API development.</textarea>
+
+    </div>
+
+
+    <!-- CANDIDATE 4 -->
+    <div class="card candidate-box">
+
+        <h2>Candidate 4</h2>
+
+        <label>Name</label>
+        <input id="name4" value="Sneha Kulkarni">
+
+        <label>Resume</label>
+        <textarea id="resume4" rows="4">Python developer with 4 years of experience in Python, FastAPI, SQL, PostgreSQL, Docker, AWS and Git. Strong backend development experience.</textarea>
+
+    </div>
+
+
+    <!-- CANDIDATE 5 -->
+    <div class="card candidate-box">
+
+        <h2>Candidate 5</h2>
+
+        <label>Name</label>
+        <input id="name5" value="Vikas Singh">
+
+        <label>Resume</label>
+        <textarea id="resume5" rows="4">Frontend developer with 2 years of experience in HTML, CSS, JavaScript and React. Experience building responsive web applications.</textarea>
+
+    </div>
+
+
+    <!-- ANALYZE -->
+    <div class="card">
+
+        <button class="analyze" onclick="recruit()">
+            Analyze & Rank 5 Candidates
         </button>
 
         <div id="loading">
@@ -225,6 +255,7 @@
     </div>
 
 
+    <!-- RESULTS -->
     <div class="card">
 
         <h2>Recruitment Results</h2>
@@ -247,50 +278,63 @@ async function recruit() {
 
     loading.style.display = "block";
 
-    results.innerHTML = "";
+    results.innerHTML = "Analyzing...";
+
+
+    const candidates = [];
+
+
+    // Collect all 5 candidates
+    for (let i = 1; i <= 5; i++) {
+
+        candidates.push({
+
+            name: document.getElementById(
+                "name" + i
+            ).value,
+
+            resume: document.getElementById(
+                "resume" + i
+            ).value
+
+        });
+
+    }
+
 
     const data = {
 
         job: {
-            title: document.getElementById("jobTitle").value,
-            description: document.getElementById("jobDescription").value
+
+            title: document.getElementById(
+                "jobTitle"
+            ).value,
+
+            description: document.getElementById(
+                "jobDescription"
+            ).value
+
         },
 
-        candidates: [
-
-            {
-                name: document.getElementById("name1").value,
-                resume: document.getElementById("resume1").value
-            },
-
-            {
-                name: document.getElementById("name2").value,
-                resume: document.getElementById("resume2").value
-            },
-
-            {
-                name: document.getElementById("name3").value,
-                resume: document.getElementById("resume3").value
-            }
-
-        ]
+        candidates: candidates
 
     };
 
 
     try {
 
-        const response = await fetch("/recruit", {
+        const response = await fetch(
+            "/recruit",
+            {
+                method: "POST",
 
-            method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
 
-            headers: {
-                "Content-Type": "application/json"
-            },
-
-            body: JSON.stringify(data)
-
-        });
+                body: JSON.stringify(data)
+            }
+        );
 
 
         const result = await response.json();
@@ -299,7 +343,8 @@ async function recruit() {
         if (!response.ok) {
 
             throw new Error(
-                result.detail || "Recruitment request failed"
+                result.detail ||
+                "Recruitment request failed"
             );
 
         }
@@ -307,46 +352,97 @@ async function recruit() {
 
         let html = `
 
-            <h3>Job: ${result.job}</h3>
+            <h3>
+                Job: ${result.job}
+            </h3>
 
             <p>
                 Total Candidates:
                 <b>${result.total_candidates}</b>
             </p>
 
+            <hr>
+
         `;
 
 
-        result.ranked_candidates.forEach((candidate, index) => {
+        result.ranked_candidates.forEach(
+            (candidate, index) => {
 
-            const score =
-                candidate.match_score ??
-                candidate.score ??
-                0;
+                const score =
+                    candidate.match_score ??
+                    candidate.score ??
+                    0;
 
 
-            html += `
+                const matched =
+                    candidate.matched_skills || [];
 
-                <div class="candidate-result">
 
-                    <div class="rank">
-                        #${index + 1}
-                        ${candidate.name}
+                const missing =
+                    candidate.missing_skills || [];
+
+
+                html += `
+
+                    <div class="candidate-result">
+
+                        <div class="rank">
+                            #${index + 1}
+                            ${candidate.name}
+                        </div>
+
+                        <div class="score">
+                            ${Number(score).toFixed(2)}%
+                        </div>
+
+                        <p>
+                            <b>Recommendation:</b>
+                            ${candidate.recommendation || "N/A"}
+                        </p>
+
+                        <p>
+                            <b>Experience:</b>
+                            ${candidate.experience_years || 0}
+                            years
+                        </p>
+
+                        <p>
+                            <b>Matched Skills:</b>
+                        </p>
+
+                        <div>
+                            ${
+                                matched.length
+                                ? matched.map(
+                                    skill =>
+                                    `<span class="skill">✓ ${skill}</span>`
+                                  ).join("")
+                                : "None"
+                            }
+                        </div>
+
+                        <p>
+                            <b>Missing Skills:</b>
+                        </p>
+
+                        <div>
+                            ${
+                                missing.length
+                                ? missing.map(
+                                    skill =>
+                                    `<span class="skill missing">✗ ${skill}</span>`
+                                  ).join("")
+                                : "None"
+                            }
+                        </div>
+
                     </div>
 
-                    <div class="score">
-                        ${Number(score).toFixed(2)}%
-                    </div>
+                `;
 
-                    <p>
-                        ${candidate.resume || ""}
-                    </p>
-
-                </div>
-
-            `;
-
-        });
+            }
+        );
 
 
         results.innerHTML = html;
