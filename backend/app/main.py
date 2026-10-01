@@ -1,12 +1,14 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
+from pathlib import Path
 import re
-from backend.app.resume_analysis import extract_resume_info
-from backend.app.skill_matching import match_skills
-class Candidate(BaseModel):
-    name: str
-    match_score: float
-from .candidate_ranking import rank_candidates
+
+from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
+
+
+# =========================================================
+# FASTAPI APP
+# =========================================================
 
 app = FastAPI(
     title="RecruitIntel AI",
@@ -15,275 +17,438 @@ app = FastAPI(
 )
 
 
+# =========================================================
+# MODELS
+# =========================================================
+
 class JobDescription(BaseModel):
     title: str
     description: str
+
+
 class Candidate(BaseModel):
     name: str
     resume: str
+
+
+class CandidateAnalysisRequest(BaseModel):
+    job_title: str
+    job_description: str
+    resume: str
+
+
+class MatchSkillsRequest(BaseModel):
+    resume_skills: list[str]
+    required_skills: list[str]
+
+
 class RecruitRequest(BaseModel):
     job: JobDescription
-    candidates: list    
+    candidates: list[Candidate]
 
 
-# Skills we currently recognize
+# =========================================================
+# SKILLS
+# =========================================================
+
 SKILLS = [
     "python",
-    "java",
+    "fastapi",
     "javascript",
     "typescript",
-    "fastapi",
-    "django",
-    "flask",
-    "react",
-    "node.js",
     "sql",
     "postgresql",
     "mysql",
     "mongodb",
     "docker",
-    "kubernetes",
     "aws",
-    "azure",
     "git",
     "github",
-    "rest api",
-    "machine learning",
+    "react",
+    "node.js",
+    "django",
+    "flask",
+    "java",
+    "c++",
     "pandas",
     "numpy",
+    "machine learning",
 ]
 
 
-def find_skills(text: str):
-    text_lower = text.lower()
+# =========================================================
+# HELPER FUNCTIONS
+# =========================================================
 
-    found = []
+def extract_skills(text: str) -> list[str]:
+    text = text.lower()
+
+    found_skills = []
 
     for skill in SKILLS:
-        if skill.lower() in text_lower:
-            found.append(skill)
+        if skill.lower() in text:
+            found_skills.append(skill)
 
-    return found
+    return found_skills
 
 
-def extract_experience(text: str):
-    patterns = [
-        r"(\d+)\+?\s*(?:years|year|yrs|yr)\s*(?:of)?\s*experience",
-        r"experience\s*(?:of)?\s*(\d+)\+?\s*(?:years|year)"
-    ]
+def calculate_match(
+    resume: str,
+    required_skills: list[str]
+):
+    resume_lower = resume.lower()
 
-    for pattern in patterns:
-        match = re.search(pattern, text.lower())
+    matched_skills = []
+    missing_skills = []
 
-        if match:
-            return int(match.group(1))
+    for skill in required_skills:
+
+        if skill.lower() in resume_lower:
+            matched_skills.append(skill)
+        else:
+            missing_skills.append(skill)
+
+    if len(required_skills) == 0:
+        match_score = 0
+    else:
+        match_score = (
+            len(matched_skills)
+            / len(required_skills)
+        ) * 100
+
+    return (
+        matched_skills,
+        missing_skills,
+        round(match_score, 2)
+    )
+
+
+def get_recommendation(score: float) -> str:
+
+    if score >= 80:
+        return "Strong Match"
+
+    elif score >= 60:
+        return "Moderate Match"
+
+    elif score >= 40:
+        return "Partial Match"
+
+    else:
+        return "Low Match"
+
+
+def extract_experience(resume: str) -> int:
+
+    match = re.search(
+        r"(\d+)\s*(?:\+)?\s*years?",
+        resume.lower()
+    )
+
+    if match:
+        return int(match.group(1))
 
     return 0
 
 
+# =========================================================
+# ROOT
+# =========================================================
+
 @app.get("/")
 def root():
+
     return {
-        "project": "RecruitIntel AI",
-        "message": "AI Recruitment Intelligence Agent is running!"
+        "message": "Welcome to RecruitIntel AI",
+        "status": "running",
+        "version": "0.1.0"
     }
 
+
+# =========================================================
+# DASHBOARD
+# =========================================================
+
+@app.get("/dashboard")
+def dashboard():
+
+    frontend_file = (
+        Path(__file__).resolve().parents[2]
+        / "frontend"
+        / "index.html"
+    )
+
+    if frontend_file.exists():
+        return FileResponse(frontend_file)
+
+    return {
+        "error": "frontend/index.html not found"
+    }
+
+
+# =========================================================
+# ANALYZE JOB DESCRIPTION
+# =========================================================
 
 @app.post("/analyze-jd")
 def analyze_jd(job: JobDescription):
 
-    text = f"{job.title} {job.description}"
-
-    skills = find_skills(text)
-
-    experience = extract_experience(job.description)
-
-    required_skills = []
-    preferred_skills = []
-
-    description_lower = job.description.lower()
-
-    for skill in skills:
-
-        skill_lower = skill.lower()
-
-        if (
-            f"{skill_lower} is preferred" in description_lower
-            or f"{skill_lower} preferred" in description_lower
-            or f"{skill_lower} is a plus" in description_lower
-            or f"{skill_lower} nice to have" in description_lower
-        ):
-            preferred_skills.append(skill)
-
-        else:
-            required_skills.append(skill)
+    required_skills = extract_skills(
+        job.description
+    )
 
     return {
         "job_title": job.title,
-
-        "experience_required": experience,
-
+        "description": job.description,
         "required_skills": required_skills,
-
-        "preferred_skills": preferred_skills,
-
-        "analysis": {
-            "skills_detected": len(skills),
-            "experience_detected": experience > 0
-        },
-
-        "next_agent": "Resume Analysis Agent"
+        "total_required_skills": len(required_skills)
     }
-class ResumeText(BaseModel):
-    text: str
 
+
+# =========================================================
+# ANALYZE RESUME
+# =========================================================
 
 @app.post("/analyze-resume")
-def analyze_resume(resume: ResumeText):
-    return extract_resume_info(resume.text)
+def analyze_resume(candidate: Candidate):
 
-class SkillMatchRequest(BaseModel):
-    resume_skills: list[str]
-    job_skills: list[str]
+    skills = extract_skills(
+        candidate.resume
+    )
 
+    experience_years = extract_experience(
+        candidate.resume
+    )
+
+    return {
+        "candidate": candidate.name,
+        "experience_years": experience_years,
+        "skills": skills,
+        "total_skills": len(skills)
+    }
+
+
+# =========================================================
+# MATCH SKILLS
+# =========================================================
 
 @app.post("/match-skills")
-def match_resume_skills(data: SkillMatchRequest):
-    return match_skills(
-        data.resume_skills,
-        data.job_skills
-    )
+def match_skills(data: MatchSkillsRequest):
 
-class CandidateAnalysisRequest(BaseModel):
-    job_title: str
-    job_description: str
-    resume_text: str
+    resume_skills_lower = [
+        skill.lower()
+        for skill in data.resume_skills
+    ]
 
+    matched_skills = [
+        skill
+        for skill in data.required_skills
+        if skill.lower() in resume_skills_lower
+    ]
+
+    missing_skills = [
+        skill
+        for skill in data.required_skills
+        if skill.lower() not in resume_skills_lower
+    ]
+
+    if len(data.required_skills) == 0:
+        match_score = 0
+    else:
+        match_score = (
+            len(matched_skills)
+            / len(data.required_skills)
+        ) * 100
+
+    return {
+        "required_skills": data.required_skills,
+        "matched_skills": matched_skills,
+        "missing_skills": missing_skills,
+        "match_score": round(match_score, 2)
+    }
+
+
+# =========================================================
+# ANALYZE CANDIDATE
+# =========================================================
 
 @app.post("/analyze-candidate")
-def analyze_candidate(data: CandidateAnalysisRequest):
+def analyze_candidate(
+    data: CandidateAnalysisRequest
+):
 
-    # 1. Analyze Job Description
-    jd_result = analyze_jd(
-        JobDescription(
-            title=data.job_title,
-            description=data.job_description
-        )
+    required_skills = extract_skills(
+        data.job_description
     )
 
-    # 2. Analyze Resume
-    resume_result = extract_resume_info(data.resume_text)
-
-    # 3. Match skills
-    skill_result = match_skills(
-        resume_result["skills"],
-        jd_result["required_skills"]
+    resume_skills = extract_skills(
+        data.resume
     )
 
-    # 4. Final candidate score
-    match_score = skill_result["match_score"]
+    (
+        matched_skills,
+        missing_skills,
+        match_score
+    ) = calculate_match(
+        data.resume,
+        required_skills
+    )
 
-    if match_score >= 80:
-        recommendation = "Strong Match"
-    elif match_score >= 60:
-        recommendation = "Moderate Match"
-    else:
-        recommendation = "Low Match"
+    recommendation = get_recommendation(
+        match_score
+    )
+
+    experience_years = extract_experience(
+        data.resume
+    )
 
     return {
         "candidate": "Analyzed Candidate",
         "job_title": data.job_title,
-        "experience_years": resume_result["experience_years"],
-        "resume_skills": resume_result["skills"],
-        "required_skills": jd_result["required_skills"],
-        "matched_skills": skill_result["matched_skills"],
-        "missing_skills": skill_result["missing_skills"],
+        "experience_years": experience_years,
+        "resume_skills": resume_skills,
+        "required_skills": required_skills,
+        "matched_skills": matched_skills,
+        "missing_skills": missing_skills,
         "match_score": match_score,
         "recommendation": recommendation
     }
+
+
+# =========================================================
+# RANK CANDIDATES
+# =========================================================
+
 @app.post("/rank-candidates")
-def rank_candidate_list(candidates: list[Candidate]):
-    ranked = sorted(
-        candidates,
-        key=lambda x: x.match_score,
+def rank_candidates(candidates: list[dict]):
+
+    ranked = list(candidates)
+
+    ranked.sort(
+        key=lambda candidate: float(
+            candidate.get("match_score", 0)
+        ),
         reverse=True
     )
+
+    for index, candidate in enumerate(
+        ranked,
+        start=1
+    ):
+        candidate["rank"] = index
 
     return {
         "total_candidates": len(ranked),
         "ranked_candidates": ranked
     }
+
+
+# =========================================================
+# COMPLETE RECRUITMENT PROCESS
+# =========================================================
+
 @app.post("/recruit")
 def recruit(data: RecruitRequest):
 
-    required_skills = [
-        "python",
-        "fastapi",
-        "sql",
-        "postgresql",
-        "docker",
-        "aws"
-    ]
+    # -----------------------------------------------------
+    # JOB SKILLS
+    # -----------------------------------------------------
+
+    required_skills = extract_skills(
+        data.job.description
+    )
+
+    # -----------------------------------------------------
+    # ANALYZE CANDIDATES
+    # -----------------------------------------------------
 
     ranked_candidates = []
 
     for candidate in data.candidates:
 
-        resume = candidate.resume.lower()
+        resume = candidate.resume
 
-        matched_skills = []
+        (
+            matched_skills,
+            missing_skills,
+            match_score
+        ) = calculate_match(
+            resume,
+            required_skills
+        )
 
-        for skill in required_skills:
-            if skill in resume:
-                matched_skills.append(skill)
+        recommendation = get_recommendation(
+            match_score
+        )
 
-        score = (
-            len(matched_skills) / len(required_skills)
-        ) * 100
+        experience_years = extract_experience(
+            resume
+        )
 
-        ranked_candidates.append({
+        candidate_result = {
+
             "name": candidate.name,
+
             "resume": candidate.resume,
+
+            "experience_years": experience_years,
+
+            "resume_skills": extract_skills(
+                candidate.resume
+            ),
+
+            "required_skills": required_skills,
+
             "matched_skills": matched_skills,
-            "match_score": round(score, 2)
-        })
+
+            "missing_skills": missing_skills,
+
+            "match_score": match_score,
+
+            "recommendation": recommendation
+        }
+
+        ranked_candidates.append(
+            candidate_result
+        )
+
+    # -----------------------------------------------------
+    # SORT BY MATCH SCORE
+    # -----------------------------------------------------
 
     ranked_candidates.sort(
-        key=lambda x: x["match_score"],
+        key=lambda candidate:
+            candidate["match_score"],
         reverse=True
     )
 
+    # -----------------------------------------------------
+    # ADD RANK
+    # -----------------------------------------------------
+
+    for index, candidate in enumerate(
+        ranked_candidates,
+        start=1
+    ):
+
+        candidate["rank"] = index
+
+    # -----------------------------------------------------
+    # FINAL RESPONSE
+    # -----------------------------------------------------
+
     return {
+
+        # IMPORTANT:
+        # Send job title as STRING,
+        # not an object.
         "job": data.job.title,
-        "total_candidates": len(ranked_candidates),
+
+        "total_candidates": len(
+            ranked_candidates
+        ),
+
+        "required_skills": required_skills,
+
         "ranked_candidates": ranked_candidates
     }
-    # Highest score first
-    ranked_candidates.sort(
-        key=lambda x: x["match_score"],
-        reverse=True
-    )
-
-
-    return {
-
-        "job": job_title,
-
-        "total_candidates": len(ranked_candidates),
-
-        "ranked_candidates": ranked_candidates
-
-    }
-def recruit(data: RecruitRequest):
-    ranked = rank_candidates(data.candidates)
-
-    return {
-        "job": data.job.title,
-        "total_candidates": len(ranked),
-        "ranked_candidates": ranked
-    }
-from fastapi.responses import FileResponse
-
-@app.get("/dashboard")
-def dashboard():
-    return FileResponse("frontend/index.html")
